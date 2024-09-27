@@ -31,12 +31,12 @@ def ctx(request: Request) -> RSSFeed:
         post_time = post_time_tag['data-timestamp'].strip().replace('s', '')
 
 
-        if index < 5:
+        if index < 1:
             d_data = ofetch.ofetch(link)
             item_soup = BeautifulSoup(d_data, 'html.parser')
             logger.info('fetching item ' + link)
             description = item_soup.select_one('div#conttpc')
-            time.sleep(2)
+            # time.sleep(2)
         else:
             description = ''
         index = index + 1
