@@ -1,8 +1,10 @@
+import time
 from datetime import datetime, timezone
 
 from bs4 import BeautifulSoup
 from starlette.requests import Request
 
+from lib.config import logger
 from lib.render import RSSFeed, Route, RSSItem
 from lib.utils import ofetch
 
@@ -17,6 +19,7 @@ def ctx(request: Request) -> RSSFeed:
     tbody = soup.find('tbody', id="tbody")
     rows = tbody.select('tr.t_one')
     rss_items = []
+    index = 0
     for row in rows:
         title_tag = row.select_one('td.tal h3 a')
         title = title_tag.text.strip()
@@ -27,9 +30,19 @@ def ctx(request: Request) -> RSSFeed:
         post_time_tag = row.select_one('td div.f12 span.s3')
         post_time = post_time_tag['data-timestamp'].strip().replace('s', '')
 
+
+        if index < 5:
+            d_data = ofetch.ofetch(link)
+            item_soup = BeautifulSoup(d_data, 'html.parser')
+            logger.info('fetching item ' + link)
+            description = item_soup.select_one('div#conttpc')
+            time.sleep(2)
+        else:
+            description = ''
+        index = index + 1
         rss_item = RSSItem(id=id, title=title, link=link, author=user,
                            pubDate=datetime.fromtimestamp(int(post_time), tz=timezone.utc),
-                           description='')
+                           description=str(description))
         rss_items.append(rss_item)
 
     return RSSFeed(title=r_title, link=url, description=r_description, item=rss_items)
@@ -46,4 +59,3 @@ route = Route(
 )
 
 data = ofetch.ofetch(url='https://cf.1761z.xyz/htm_data/2409/25/6519554.html')
-print(data)

@@ -64,9 +64,10 @@ def rss(request: Request, route: Route) -> Response:
         fe.id(item.id)
         fe.title(item.title)
         fe.link(href=item.link)
-        fe.description(item.description)
+        fe.description(item.title)
         fe.pubDate(item.pubDate)
         fe.guid(item.link, permalink=True)
+        fe.content(item.description)
     rss_feed = fg.rss_str(pretty=True)
 
     etag = hashlib.md5(rss_feed).hexdigest()
