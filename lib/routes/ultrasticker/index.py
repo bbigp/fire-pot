@@ -42,7 +42,7 @@ def ctx(request: Request) -> RSSFeed:
         index = index + 1
         rss_item = RSSItem(id=id, title=title, link=link, author=user,
                            pubDate=datetime.fromtimestamp(int(post_time), tz=timezone.utc),
-                           description=str(description))
+                           description=str(description).replace('ess-data=', 'src='))
         rss_items.append(rss_item)
 
     return RSSFeed(title=r_title, link=url, description=r_description, item=rss_items)
