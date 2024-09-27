@@ -1,6 +1,18 @@
-import uvicorn
+from fastapi import FastAPI
+from starlette.staticfiles import StaticFiles
+
+from lib.config import logger
+from lib.router import request_mapping
 
 
+def create_app():
+    app = FastAPI(debug=True, title="RSS Hub")
+    app.include_router(request_mapping)
 
-if __name__ == '__main__':
-    uvicorn.run('lib:app', host='0.0.0.0', port=1210, access_log=True)
+    logger.info("🎉 RSSHub is running on port 1210! Cheers!")
+    logger.info("💖 Can you help keep this open source project alive? Please sponsor 👉 https://docs.rsshub.app/sponsor")
+    logger.info("🔗 Local: 👉 http://localhost:1210")
+    return app
+
+
+app = create_app()
