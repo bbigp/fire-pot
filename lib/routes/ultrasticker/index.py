@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from bs4 import BeautifulSoup
 from starlette.requests import Request
@@ -28,7 +28,13 @@ def ctx(request: Request) -> RSSFeed:
 
         user = row.select_one('td a.bl').text.strip()
         post_time_tag = row.select_one('td div.f12 span.s3')
-        post_time = post_time_tag['data-timestamp'].strip().replace('s', '')
+        post_time_title = post_time_tag['title']
+        if '置顶主题' in post_time_title:
+            naive_datetime  = datetime.strptime(post_time_title.replace('置顶主题：', ''), "%Y-%m-%d %H:%M:%S")
+            pubDate = naive_datetime.replace(tzinfo=timezone(timedelta(hours=8)))
+        else:
+            post_time = post_time_tag['data-timestamp'].strip().replace('s', '')
+            pubDate = datetime.fromtimestamp(int(post_time), tz=timezone(timedelta(hours=8)))
 
 
         if index < 1:
@@ -41,7 +47,7 @@ def ctx(request: Request) -> RSSFeed:
             description = ''
         index = index + 1
         rss_item = RSSItem(id=id, title=title, link=link, author=user,
-                           pubDate=datetime.fromtimestamp(int(post_time), tz=timezone.utc),
+                           pubDate=pubDate,
                            description=str(description).replace('ess-data=', 'src='))
         rss_items.append(rss_item)
 

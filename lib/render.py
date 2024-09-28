@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import hashlib
 from typing import List, Callable, Any
 
@@ -48,7 +48,7 @@ def rss(request: Request, route: Route) -> Response:
     else:
         feed = RSSFeed.parse_raw(rss_feed_json)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone(timedelta(hours=8)))
     fg = FeedGenerator()
     fg.id(generate(size=10))
     fg.title(feed.title)
