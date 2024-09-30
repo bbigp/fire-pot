@@ -2,12 +2,13 @@ from datetime import datetime, timezone, timedelta
 import hashlib
 from typing import List, Callable, Any
 
-from cachetools import TTLCache
 from feedgen.feed import FeedGenerator
 from nanoid import generate
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response
+
+from lib import cache
 from lib.config import logger
 
 class RSSItem(BaseModel):
@@ -35,18 +36,17 @@ class Route(BaseModel):
     class Config:
         arbitrary_types_allowed=True
 
-cache = TTLCache(maxsize=100, ttl=60*10)
-def rss(request: Request, route: Route) -> Response:
+
+async def rss(request: Request, route: Route) -> Response:
     full_url = str(request.url)
 
-    rss_feed_json = cache.get(full_url)
     if True:
-    # if rss_feed_json is None:
+    # if not cache.exists_cahce(full_url):
         logger.info("Fetching RSS for %s", full_url)
-        feed = route.handler(request)
-        cache[full_url] = feed.json()
+        feed = await route.handler(request)
+        cache.put_cahce(full_url, feed.json())
     else:
-        feed = RSSFeed.parse_raw(rss_feed_json)
+        feed = RSSFeed.parse_raw(cache.get_cahce(full_url))
 
     now = datetime.now(timezone(timedelta(hours=8)))
     fg = FeedGenerator()

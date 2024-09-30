@@ -23,4 +23,4 @@ async def index(request: Request):
 @request_mapping.get("/ultrasticker/")
 async def ultrasticker(request: Request):
     from lib.routes.ultrasticker.index import route
-    return render.rss(request, route)
+    return await render.rss(request, route)
