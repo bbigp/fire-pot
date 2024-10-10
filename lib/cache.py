@@ -1,4 +1,7 @@
 from cachetools import TTLCache
+import redis
+
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
 channel_cache = TTLCache(maxsize=100, ttl=60*10)
 
