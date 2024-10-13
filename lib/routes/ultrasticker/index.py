@@ -1,12 +1,11 @@
 import asyncio
-import time
 from datetime import datetime, timezone, timedelta
 
 from bs4 import BeautifulSoup
 from starlette.requests import Request
 
-from lib.cache import get_cahce, exists_cahce, put_cahce
-from lib.config import logger
+from lib.cache import put_cache, exists_cache, get_cache
+from lib.utils import logger
 from lib.render import RSSFeed, Route, RSSItem
 from lib.utils import ofetch
 from main import app
@@ -15,14 +14,14 @@ host = 'https://cf.1761z.xyz/'
 main_url = host + 'thread0806.php?fid=25'
 LIMIT_RATE = 2
 
-details_queue = asyncio.Queue()
+
 async def ctx(request: Request) -> RSSFeed:
     feed = gen_channel(url=main_url)
 
     new_items = []
     for each in feed.item:
-        if exists_cahce(each.link):
-            each.description = get_cahce(each.link)
+        if exists_cache(each.link):
+            each.description = get_cache(each.link)
             new_items.append(each)
         else:
             await details_queue.put(each.link)
@@ -30,20 +29,6 @@ async def ctx(request: Request) -> RSSFeed:
     feed.item = new_items
     return feed
 
-@app.on_event("startup")
-def on_startup():
-    asyncio.create_task(fetch_task())
-
-
-async def fetch_task():
-    while True:
-        url = await details_queue.get()
-        if url is None:
-            await asyncio.sleep(2)
-        else:
-            await asyncio.sleep(LIMIT_RATE)  # 设置限速
-            details = gen_content(url)
-            put_cahce(url, details)
 
 def gen_channel(url: str) -> RSSFeed:
     data = ofetch.ofetch(url=url)
@@ -79,10 +64,9 @@ def gen_channel(url: str) -> RSSFeed:
 
 
 def gen_content(link: str) -> str:
-    logger.info('client:%s', link)
     d_data = ofetch.ofetch(link)
     item_soup = BeautifulSoup(d_data, 'html.parser')
-    logger.info('fetching item ' + link)
+    logger.info(f'GEN content {link}')
     description = item_soup.select_one('div#conttpc')
     return str(description).replace('ess-data=', 'src=')
 
@@ -93,6 +77,7 @@ route = Route(
     url='',
     maintainers = [],
     handler=ctx,
+    content_handler=gen_content,
     example=''
 )
 

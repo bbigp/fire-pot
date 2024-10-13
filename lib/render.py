@@ -9,7 +9,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from lib import cache
-from lib.config import logger
+from lib.utils import logger
 
 class RSSItem(BaseModel):
     id: str=''
@@ -31,22 +31,25 @@ class Route(BaseModel):
     url: str=''
     maintainers: List[str]=[]
     handler: Callable[..., Any]
+    content_handler: Callable[..., Any]
     example: str=''
 
     class Config:
         arbitrary_types_allowed=True
 
+class BackgroundTask(BaseModel):
+    route: Route
+    link: str
 
 async def rss(request: Request, route: Route) -> Response:
     full_url = str(request.url)
 
-    if True:
     # if not cache.exists_cahce(full_url):
-        logger.info("Fetching RSS for %s", full_url)
-        feed = await route.handler(request)
-        cache.put_cahce(full_url, feed.json())
-    else:
-        feed = RSSFeed.parse_raw(cache.get_cahce(full_url))
+    logger.info(f"---> GET {full_url}")
+    feed = await route.handler(request)
+    cache.put_cache('RSS-Channel:' + full_url, feed.json(), ttl=60 * 5)
+    # else:
+    #     feed = RSSFeed.parse_raw(cache.get_cahce(full_url))
 
     now = datetime.now(timezone(timedelta(hours=8)))
     fg = FeedGenerator()

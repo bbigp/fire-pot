@@ -1,13 +1,13 @@
 import requests
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
-from lib.config import logger
+from lib.utils import logger
 
 DEFAULT_HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'}
 urllib3.disable_warnings(InsecureRequestWarning)
 
 def ofetch(url: str, headers=None, proxies: dict=None) -> str:
-    global res
+    logger.info(f"Requesting ---> {url}...")
     if headers is None:
         headers = DEFAULT_HEADERS
     try:
