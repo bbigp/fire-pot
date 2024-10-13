@@ -12,10 +12,4 @@
       "dest": "main.py"
     }
   ]
-//  "crons": [
-//    {
-//      "path": "/trigger-background-task",
-//      "schedule": "*/5 * * * *"
-//    }
-//  ]
 }
