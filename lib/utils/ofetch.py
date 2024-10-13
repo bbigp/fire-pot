@@ -7,7 +7,7 @@ DEFAULT_HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 urllib3.disable_warnings(InsecureRequestWarning)
 
 def ofetch(url: str, headers=None, proxies: dict=None) -> str:
-    logger.info(f"Requesting ---> {url}...")
+    logger.info(f"[Requesting] ---> {url}")
     if headers is None:
         headers = DEFAULT_HEADERS
     try:

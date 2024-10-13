@@ -7,7 +7,11 @@ def put_cache(key, value, ttl):
     redis_client.set(key, value, ex=ttl)
 
 def get_cache(key):
-    return redis_client.get(key)
+    raw_data: bytes = redis_client.get(key)
+    if raw_data is None:
+        return raw_data
+    else:
+        return raw_data.decode('utf-8')
 
 def exists_cache(key):
     return redis_client.exists(key)

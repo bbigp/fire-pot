@@ -1,8 +1,8 @@
 import asyncio
-import random
 
 from fastapi import FastAPI
 
+from lib.cron import fetch_task
 from lib.router import request_mapping
 from lib.utils import logger
 
@@ -27,16 +27,5 @@ app = create_app()
 def on_startup():
     asyncio.create_task(fetch_task())
 
-details_queue = asyncio.Queue()
 
-async def fetch_task():
-    logger.info('background task start..')
-    while True:
-        if details_queue.empty():
-            await asyncio.sleep(2)
-        else:
-            back_task = await details_queue.get()
-            back_task.route.content_handler(back_task.link)
-            sleep_time = random.uniform(2, 20)
-            logger.info(f'sleep time: {sleep_time}')
-            await asyncio.sleep(sleep_time)
+

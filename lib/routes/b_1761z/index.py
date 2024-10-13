@@ -1,32 +1,19 @@
-import asyncio
 from datetime import datetime, timezone, timedelta
 
 from bs4 import BeautifulSoup
 from starlette.requests import Request
 
-from lib.cache import put_cache, exists_cache, get_cache
-from lib.utils import logger
 from lib.render import RSSFeed, Route, RSSItem
+from lib.utils import logger
 from lib.utils import ofetch
-from main import app
 
 host = 'https://cf.1761z.xyz/'
-main_url = host + 'thread0806.php?fid=25'
-LIMIT_RATE = 2
+main_url = host + 'thread0806.php?fid='
 
 
 async def ctx(request: Request) -> RSSFeed:
-    feed = gen_channel(url=main_url)
-
-    new_items = []
-    for each in feed.item:
-        if exists_cache(each.link):
-            each.description = get_cache(each.link)
-            new_items.append(each)
-        else:
-            await details_queue.put(each.link)
-
-    feed.item = new_items
+    fid = request.path_params['fid']
+    feed = gen_channel(url=main_url + fid)
     return feed
 
 
@@ -63,22 +50,22 @@ def gen_channel(url: str) -> RSSFeed:
     return RSSFeed(title=r_title, link=url, description=r_description, item=rss_items)
 
 
-def gen_content(link: str) -> str:
+def ctx_for_description(link: str) -> str:
     d_data = ofetch.ofetch(link)
     item_soup = BeautifulSoup(d_data, 'html.parser')
-    logger.info(f'GEN content {link}')
+    logger.info(f'GEN detail {link}')
     description = item_soup.select_one('div#conttpc')
     return str(description).replace('ess-data=', 'src=')
 
 
 route = Route(
-    path='sdsd',
-    name='',
-    url='',
-    maintainers = [],
+    path='/1761z/:fid',
+    name='分区帖子',
+    example='/1761z/25',
+    parameters={'fid': '分区id'},
     handler=ctx,
-    content_handler=gen_content,
-    example=''
+    content_handler=ctx_for_description,
+    description='国产原创区：25'
 )
 
 

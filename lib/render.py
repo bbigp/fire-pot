@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 import hashlib
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Dict
 
 from feedgen.feed import FeedGenerator
 from nanoid import generate
@@ -9,7 +9,9 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from lib import cache
+from lib.cron import details_queue
 from lib.utils import logger
+
 
 class RSSItem(BaseModel):
     id: str=''
@@ -28,11 +30,11 @@ class RSSFeed(BaseModel):
 class Route(BaseModel):
     path: str=''
     name: str=''
-    url: str=''
-    maintainers: List[str]=[]
+    example: str=''
+    parameters: Dict=[]
     handler: Callable[..., Any]
     content_handler: Callable[..., Any]
-    example: str=''
+    description: str=''
 
     class Config:
         arbitrary_types_allowed=True
@@ -41,15 +43,34 @@ class BackgroundTask(BaseModel):
     route: Route
     link: str
 
+    def execute(self):
+        data = self.route.content_handler(self.link)
+        cache.put_cache(self.link, data, ttl=60*60*24*5)
+
+    class Config:
+        arbitrary_types_allowed = True
+
 async def rss(request: Request, route: Route) -> Response:
     full_url = str(request.url)
+    cache_key = 'RSS-Channel:' + full_url
 
-    # if not cache.exists_cahce(full_url):
-    logger.info(f"---> GET {full_url}")
-    feed = await route.handler(request)
-    cache.put_cache('RSS-Channel:' + full_url, feed.json(), ttl=60 * 5)
-    # else:
-    #     feed = RSSFeed.parse_raw(cache.get_cahce(full_url))
+    data = cache.get_cache(cache_key)
+    if data is None:
+        logger.info(f"[Render] data from network --> {full_url}")
+        feed = await route.handler(request)
+        cache.put_cache(cache_key, feed.json(), ttl=60 * 5)
+    else:
+        logger.info(f'[Render] data from cache --> {full_url}')
+        feed = RSSFeed.parse_raw(data)
+
+    return_items = []
+    for each in feed.item:
+        if cache.exists_cache(each.link):
+            each.description = cache.get_cache(each.link)
+            return_items.append(each)
+        else:
+            await details_queue.put(BackgroundTask(route=route, link=each.link))
+
 
     now = datetime.now(timezone(timedelta(hours=8)))
     fg = FeedGenerator()
@@ -62,7 +83,7 @@ async def rss(request: Request, route: Route) -> Response:
     fg.language('zh')
     fg.lastBuildDate(now)
 
-    for item in feed.item:
+    for item in return_items:
         fe = fg.add_entry()
         fe.id(item.id)
         fe.title(item.title)
@@ -70,7 +91,7 @@ async def rss(request: Request, route: Route) -> Response:
         fe.description(item.title)
         fe.pubDate(item.pubDate)
         fe.guid(item.link, permalink=True)
-        fe.content(item.description)
+        fe.content(f"<![CDATA[{item.description}]]>")
     rss_feed = fg.rss_str(pretty=True)
 
     etag = hashlib.md5(rss_feed).hexdigest()
